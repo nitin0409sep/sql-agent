@@ -2,6 +2,9 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useRef, useState, useEffect } from 'react';
+import type { UIMessage } from 'ai';
+
+const STORAGE_KEY = 'sql-agent-messages';
 
 const SUGGESTIONS = [
   'Show me all products',
@@ -9,15 +12,32 @@ const SUGGESTIONS = [
   'Total sales by region',
 ];
 
+function loadMessages(): UIMessage[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function Chat() {
   const [input, setInput] = useState('');
-  const { messages, sendMessage, status, stop } = useChat();
+  const [savedMessages] = useState(loadMessages);
+  const { messages, sendMessage, status, stop } = useChat({ messages: savedMessages });
   const isLoading = status === 'submitted' || status === 'streaming';
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (messages.length > 0) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     }
   }, [messages]);
 
